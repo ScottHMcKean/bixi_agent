@@ -1,4 +1,5 @@
 # Scraped data files
+mlruns/*
 scraped_data/
 scraped_*/
 *.md

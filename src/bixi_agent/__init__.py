@@ -6,6 +6,8 @@ from pathlib import Path
 
 from .scraper import BixiScraper
 from .storage import LocalStorage, DatabricksStorage
+from . import gbfs
+from . import gbfs_uc
 
 logger = logging.getLogger(__name__)
 
@@ -114,4 +116,3 @@ class BixiAgent:
             "total_links_found": total_links,
             "visited_urls": len(self.scraper.visited_urls),
         }
-
