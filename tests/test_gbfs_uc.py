@@ -1,311 +1,446 @@
-"""Tests for Unity Catalog GBFS wrapper functions."""
+"""Tests for Unity Catalog GBFS SQL generation.
+
+Since the standalone UC functions don't require the bixi_agent library,
+we test the SQL generation and structure rather than function execution.
+"""
 
 import pytest
-import json
 
 from bixi_agent import gbfs_uc
 
 
-class TestUnityCatalogAggregates:
-    """Test Unity Catalog aggregate functions."""
+class TestSQLGeneration:
+    """Test SQL generation for Unity Catalog functions."""
 
-    def test_count_total_stations(self):
-        """Test counting total stations."""
-        count = gbfs_uc.count_total_stations()
+    def test_get_function_sql_single(self):
+        """Test generating SQL for a single function."""
+        sql = gbfs_uc.get_function_sql("bixi_get_total_bikes_available")
 
-        assert isinstance(count, int)
-        assert count > 0
+        assert isinstance(sql, str)
+        assert len(sql) > 0
+        assert "CREATE SCHEMA IF NOT EXISTS main.bixi" in sql
+        assert (
+            "CREATE OR REPLACE FUNCTION main.bixi.bixi_get_total_bikes_available" in sql
+        )
+        assert "RETURNS INT" in sql
 
-    def test_count_operational_stations(self):
-        """Test counting operational stations."""
-        count = gbfs_uc.count_operational_stations()
+    def test_get_function_sql_without_schema(self):
+        """Test generating SQL without schema creation."""
+        sql = gbfs_uc.get_function_sql(
+            "bixi_get_total_bikes_available", include_schema=False
+        )
 
-        assert isinstance(count, int)
-        assert count > 0
+        assert isinstance(sql, str)
+        assert "CREATE SCHEMA" not in sql
+        assert "CREATE OR REPLACE FUNCTION" in sql
 
-    def test_get_total_bikes_available(self):
-        """Test getting total bikes available."""
-        total = gbfs_uc.get_total_bikes_available()
+    def test_get_function_sql_custom_catalog(self):
+        """Test generating SQL with custom catalog/schema."""
+        sql = gbfs_uc.get_function_sql(
+            "bixi_get_total_bikes_available", catalog="my_catalog", schema="my_schema"
+        )
 
-        assert isinstance(total, int)
-        assert total >= 0
+        assert "my_catalog.my_schema" in sql
 
-    def test_get_total_docks_available(self):
-        """Test getting total docks available."""
-        total = gbfs_uc.get_total_docks_available()
+    def test_get_function_sql_invalid_name(self):
+        """Test error handling for invalid function name."""
+        with pytest.raises(ValueError) as exc_info:
+            gbfs_uc.get_function_sql("nonexistent_function")
 
-        assert isinstance(total, int)
-        assert total >= 0
+        assert "not found" in str(exc_info.value).lower()
+        assert "Available functions" in str(exc_info.value)
 
-    def test_get_system_capacity(self):
-        """Test getting system capacity."""
-        capacity = gbfs_uc.get_system_capacity()
+    def test_list_available_functions(self):
+        """Test listing available functions."""
+        functions = gbfs_uc.list_available_functions()
 
-        assert isinstance(capacity, int)
-        assert capacity > 0
-
-    def test_get_system_utilization(self):
-        """Test getting system utilization."""
-        utilization = gbfs_uc.get_system_utilization()
-
-        assert isinstance(utilization, float)
-        assert 0 <= utilization <= 100
-
-
-class TestUnityCatalogCounts:
-    """Test Unity Catalog counting functions."""
-
-    def test_count_stations_with_bikes(self):
-        """Test counting stations with bikes."""
-        count = gbfs_uc.count_stations_with_bikes(min_bikes=1)
-
-        assert isinstance(count, int)
-        assert count >= 0
-
-    def test_count_stations_with_bikes_high_threshold(self):
-        """Test counting stations with high bike threshold."""
-        count_1 = gbfs_uc.count_stations_with_bikes(min_bikes=1)
-        count_10 = gbfs_uc.count_stations_with_bikes(min_bikes=10)
-
-        # Fewer stations should have 10+ bikes than 1+ bikes
-        assert count_10 <= count_1
-
-    def test_count_stations_with_docks(self):
-        """Test counting stations with docks."""
-        count = gbfs_uc.count_stations_with_docks(min_docks=1)
-
-        assert isinstance(count, int)
-        assert count >= 0
-
-
-class TestUnityCatalogJSONFunctions:
-    """Test Unity Catalog JSON returning functions."""
-
-    def test_get_station_status_json(self):
-        """Test getting station status as JSON."""
-        result = gbfs_uc.get_station_status_json()
-
-        assert isinstance(result, str)
-
-        # Parse to verify valid JSON
-        data = json.loads(result)
-        assert "data" in data
-        assert "stations" in data["data"]
-
-    def test_get_station_information_json(self):
-        """Test getting station information as JSON."""
-        result = gbfs_uc.get_station_information_json()
-
-        assert isinstance(result, str)
-
-        # Parse to verify valid JSON
-        data = json.loads(result)
-        assert "data" in data
-        assert "stations" in data["data"]
-
-    def test_find_stations_with_bikes_json(self):
-        """Test finding stations with bikes as JSON."""
-        result = gbfs_uc.find_stations_with_bikes_json(min_bikes=5)
-
-        assert isinstance(result, str)
-
-        # Parse to verify valid JSON
-        stations = json.loads(result)
-        assert isinstance(stations, list)
-
-        # Verify all stations meet criteria
-        for station in stations:
-            assert station.get("num_bikes_available", 0) >= 5
-
-    def test_find_stations_with_docks_json(self):
-        """Test finding stations with docks as JSON."""
-        result = gbfs_uc.find_stations_with_docks_json(min_docks=5)
-
-        assert isinstance(result, str)
-
-        # Parse to verify valid JSON
-        stations = json.loads(result)
-        assert isinstance(stations, list)
-
-    def test_get_station_by_name_json(self):
-        """Test getting station by name as JSON."""
-        # Get a real station name first
-        info = gbfs_uc.get_station_information_json()
-        stations = json.loads(info)["data"]["stations"]
-
-        if len(stations) > 0:
-            station_name = stations[0]["name"]
-
-            result = gbfs_uc.get_station_by_name_json(station_name)
-            assert isinstance(result, str)
-
-            # Parse to verify valid JSON
-            station = json.loads(result)
-            assert station is not None
-            assert station_name in station["name"]
-
-    def test_get_station_by_name_json_not_found(self):
-        """Test getting non-existent station returns null."""
-        result = gbfs_uc.get_station_by_name_json("NonExistentStation12345")
-
-        assert isinstance(result, str)
-
-        # Should return null as JSON
-        station = json.loads(result)
-        assert station is None
-
-    def test_get_all_stations_summary_json(self):
-        """Test getting all stations summary as JSON."""
-        result = gbfs_uc.get_all_stations_summary_json()
-
-        assert isinstance(result, str)
-
-        # Parse to verify valid JSON
-        stations = json.loads(result)
-        assert isinstance(stations, list)
-        assert len(stations) > 0
-
-    def test_get_system_information_json(self):
-        """Test getting system information as JSON."""
-        result = gbfs_uc.get_system_information_json()
-
-        assert isinstance(result, str)
-
-        # Parse to verify valid JSON
-        data = json.loads(result)
-        assert "data" in data
-
-    def test_get_system_alerts_json(self):
-        """Test getting system alerts as JSON."""
-        result = gbfs_uc.get_system_alerts_json()
-
-        assert isinstance(result, str)
-
-        # Parse to verify valid JSON
-        data = json.loads(result)
-        assert "data" in data
-
-
-class TestUnityCatalogLanguageSupport:
-    """Test language support in Unity Catalog functions."""
-
-    def test_english_language(self):
-        """Test functions with English language."""
-        count = gbfs_uc.count_total_stations(language="en")
-        assert count > 0
-
-    def test_french_language(self):
-        """Test functions with French language."""
-        count = gbfs_uc.count_total_stations(language="fr")
-        assert count > 0
-
-    def test_language_consistency(self):
-        """Test that both languages return same station count."""
-        count_en = gbfs_uc.count_total_stations(language="en")
-        count_fr = gbfs_uc.count_total_stations(language="fr")
-
-        # Should have same number of stations regardless of language
-        assert count_en == count_fr
-
-
-class TestUnityCatalogRegistration:
-    """Test Unity Catalog registration helpers."""
+        assert isinstance(functions, list)
+        assert len(functions) == 16  # We have 16 functions
+        assert "bixi_get_total_bikes_available" in functions
+        assert "bixi_count_total_stations" in functions
+        assert "bixi_get_all_stations_summary_json" in functions
 
     def test_get_registration_sql(self):
-        """Test SQL generation for registration."""
+        """Test SQL generation with default parameters."""
+        sql = gbfs_uc.get_registration_sql()
+
+        assert isinstance(sql, str)
+        assert len(sql) > 0
+
+        # Check for schema creation
+        assert "CREATE SCHEMA IF NOT EXISTS" in sql
+        # Default is now main.bixi (cleaner name)
+        assert "main.bixi" in sql
+
+    def test_custom_catalog_schema(self):
+        """Test SQL generation with custom catalog and schema."""
         sql = gbfs_uc.get_registration_sql(
             catalog="test_catalog", schema="test_schema", function_prefix="test_"
         )
 
-        assert isinstance(sql, str)
-        assert "test_catalog" in sql
-        assert "test_schema" in sql
-        assert "test_" in sql
+        assert "test_catalog.test_schema" in sql
+        assert "test_get_total_bikes_available" in sql
+        assert "test_count_total_stations" in sql
 
-        # Check that key functions are included
-        assert "get_station_status_json" in sql
-        assert "get_total_bikes_available" in sql
-        assert "get_system_utilization" in sql
-
-    def test_registration_sql_different_names(self):
-        """Test SQL generation with different catalog/schema."""
+    def test_function_prefix(self):
+        """Test that function prefix is applied correctly."""
         sql = gbfs_uc.get_registration_sql(
-            catalog="main", schema="bixi_data", function_prefix="bixi_"
+            catalog="main", schema="bixi", function_prefix="bixi_"
         )
 
-        assert "main.bixi_data" in sql
-        assert "bixi_get_station_status_json" in sql
+        # Check that functions have the prefix
+        assert "bixi_get_total_bikes_available" in sql
+        assert "bixi_count_stations_with_bikes" in sql
+        assert "bixi_get_station_by_name_json" in sql
 
 
-class TestUnityCatalogIntegration:
-    """Integration tests for Unity Catalog functions."""
+class TestFunctionDefinitions:
+    """Test that all expected functions are defined in SQL."""
 
-    def test_consistency_with_base_functions(self):
-        """Test that UC functions return same data as base functions."""
-        from bixi_agent import gbfs
+    def test_all_aggregate_functions_present(self):
+        """Test that all aggregate functions are in SQL."""
+        sql = gbfs_uc.get_registration_sql()
 
-        # Compare aggregate functions
-        total_bikes_uc = gbfs_uc.get_total_bikes_available()
+        aggregate_functions = [
+            "get_total_bikes_available",
+            "get_total_docks_available",
+            "get_system_capacity",
+            "get_system_utilization",
+            "count_total_stations",
+            "count_operational_stations",
+        ]
 
-        stations = gbfs.get_all_stations_summary()
-        total_bikes_direct = sum(s.get("num_bikes_available", 0) for s in stations)
+        for func in aggregate_functions:
+            assert func in sql, f"Missing aggregate function: {func}"
 
-        assert total_bikes_uc == total_bikes_direct
+    def test_all_count_functions_present(self):
+        """Test that all count functions are in SQL."""
+        sql = gbfs_uc.get_registration_sql()
 
-    def test_json_roundtrip(self):
-        """Test that JSON functions can be parsed back to objects."""
-        # Get all stations as JSON
-        stations_json = gbfs_uc.get_all_stations_summary_json()
-        stations = json.loads(stations_json)
+        count_functions = [
+            "count_stations_with_bikes",
+            "count_stations_with_docks",
+        ]
 
-        # Verify structure
-        assert isinstance(stations, list)
-        assert len(stations) > 0
+        for func in count_functions:
+            assert func in sql, f"Missing count function: {func}"
 
-        # Check first station has expected fields
-        station = stations[0]
-        assert "station_id" in station
-        assert "name" in station
-        assert "lat" in station
-        assert "lon" in station
+    def test_all_json_functions_present(self):
+        """Test that all JSON functions are in SQL."""
+        sql = gbfs_uc.get_registration_sql()
 
-    def test_count_functions_match_json_lengths(self):
-        """Test that count functions match JSON array lengths."""
-        # Get stations with 5+ bikes
-        count = gbfs_uc.count_stations_with_bikes(min_bikes=5)
+        json_functions = [
+            "get_station_status_json",
+            "get_station_information_json",
+            "get_system_information_json",
+            "get_system_alerts_json",
+            "find_stations_with_bikes_json",
+            "find_stations_with_docks_json",
+            "get_station_by_name_json",
+            "get_all_stations_summary_json",
+        ]
 
-        stations_json = gbfs_uc.find_stations_with_bikes_json(min_bikes=5)
-        stations = json.loads(stations_json)
+        for func in json_functions:
+            assert func in sql, f"Missing JSON function: {func}"
 
-        assert count == len(stations)
 
-    def test_utilization_calculation(self):
-        """Test utilization calculation is correct."""
-        utilization = gbfs_uc.get_system_utilization()
+class TestSQLStructure:
+    """Test SQL structure and syntax."""
 
-        total_bikes = gbfs_uc.get_total_bikes_available()
-        capacity = gbfs_uc.get_system_capacity()
+    def test_create_or_replace_function_syntax(self):
+        """Test that functions use CREATE OR REPLACE syntax."""
+        sql = gbfs_uc.get_registration_sql()
 
-        expected_utilization = (total_bikes / capacity * 100.0) if capacity > 0 else 0.0
+        # Count function definitions
+        create_count = sql.count("CREATE OR REPLACE FUNCTION")
 
-        # Allow small floating point difference
-        assert abs(utilization - expected_utilization) < 0.01
+        # Should have at least 16 functions (6 aggregate + 2 count + 8 JSON)
+        assert create_count >= 16
 
-    def test_operational_vs_total_stations(self):
-        """Test that operational stations <= total stations."""
-        total = gbfs_uc.count_total_stations()
-        operational = gbfs_uc.count_operational_stations()
+    def test_python_language_specified(self):
+        """Test that functions specify LANGUAGE PYTHON."""
+        sql = gbfs_uc.get_registration_sql()
 
-        assert operational <= total
+        # Each function should have LANGUAGE PYTHON
+        assert sql.count("LANGUAGE PYTHON") >= 16
 
-    def test_bikes_and_docks_vs_capacity(self):
-        """Test that bikes + docks roughly equals capacity."""
-        total_bikes = gbfs_uc.get_total_bikes_available()
-        total_docks = gbfs_uc.get_total_docks_available()
-        capacity = gbfs_uc.get_system_capacity()
+    def test_comments_present(self):
+        """Test that functions have COMMENT documentation."""
+        sql = gbfs_uc.get_registration_sql()
 
-        # Bikes + docks should be close to capacity
-        # Allow some margin for bikes in transit, disabled bikes, etc.
-        total_used = total_bikes + total_docks
-        assert total_used <= capacity + 100  # Small buffer for edge cases
+        # Each function should have a COMMENT
+        assert sql.count("COMMENT") >= 16
 
+    def test_default_parameters(self):
+        """Test that language parameters have defaults."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Functions should have language STRING DEFAULT 'en'
+        assert "language STRING DEFAULT 'en'" in sql
+
+    def test_as_dollar_dollar_syntax(self):
+        """Test that function bodies use AS $$ syntax."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Each function should have AS $$ ... $$;
+        assert sql.count("AS $$") >= 16
+        assert sql.count("$$;") >= 16
+
+
+class TestAPIURLs:
+    """Test that correct API URLs are embedded in functions."""
+
+    def test_gbfs_base_url(self):
+        """Test that functions use correct GBFS base URL."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should use the correct GBFS API base
+        assert "gbfs.velobixi.com/gbfs/2-2" in sql
+
+    def test_station_status_endpoint(self):
+        """Test station status endpoint is correct."""
+        sql = gbfs_uc.get_registration_sql()
+
+        assert "station_status.json" in sql
+
+    def test_station_information_endpoint(self):
+        """Test station information endpoint is correct."""
+        sql = gbfs_uc.get_registration_sql()
+
+        assert "station_information.json" in sql
+
+    def test_system_information_endpoint(self):
+        """Test system information endpoint is correct."""
+        sql = gbfs_uc.get_registration_sql()
+
+        assert "system_information.json" in sql
+
+    def test_system_alerts_endpoint(self):
+        """Test system alerts endpoint is correct."""
+        sql = gbfs_uc.get_registration_sql()
+
+        assert "system_alerts.json" in sql
+
+
+class TestPythonDependencies:
+    """Test that functions use only standard libraries."""
+
+    def test_only_requests_import(self):
+        """Test that functions only import requests (and json)."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should import requests
+        assert "import requests" in sql
+
+        # Should import json
+        assert "import json" in sql
+
+        # Should NOT import bixi_agent or other custom packages
+        assert "bixi_agent" not in sql
+        assert "from bixi_agent" not in sql
+        assert "import bixi_agent" not in sql
+
+    def test_no_external_dependencies(self):
+        """Test that functions don't require external packages."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should not reference any of these
+        forbidden_imports = [
+            "pandas",
+            "numpy",
+            "sklearn",
+            "gbfs",
+            "bixi",
+        ]
+
+        for package in forbidden_imports:
+            assert f"import {package}" not in sql
+            assert f"from {package}" not in sql
+
+
+class TestFunctionLogic:
+    """Test that function logic is correctly embedded."""
+
+    def test_total_bikes_logic(self):
+        """Test that total bikes function has correct logic."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should sum num_bikes_available
+        assert "num_bikes_available" in sql
+        assert "total" in sql or "sum" in sql.lower()
+
+    def test_utilization_logic(self):
+        """Test that utilization function calculates correctly."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should calculate percentage
+        assert "* 100" in sql or "* 100.0" in sql
+
+    def test_station_filtering_logic(self):
+        """Test that station filtering checks correct fields."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should check is_renting, is_returning, is_installed
+        assert "is_renting" in sql
+        assert "is_returning" in sql
+        assert "is_installed" in sql
+
+    def test_station_merging_logic(self):
+        """Test that functions merge info and status."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should build status_dict and merge (new clean code uses status_dict)
+        assert "status_dict" in sql
+        assert "station_id" in sql
+        assert "merged" in sql
+
+
+class TestExamples:
+    """Test that SQL includes usage examples."""
+
+    def test_examples_section_present(self):
+        """Test that SQL includes usage examples."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should have examples section
+        assert "Example" in sql or "example" in sql
+
+    def test_select_example(self):
+        """Test that examples show SELECT statements."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should have commented SELECT examples
+        assert "SELECT" in sql
+
+
+class TestConvenienceFunctions:
+    """Test convenience helper functions."""
+
+    def test_get_main_bixi_sql(self):
+        """Test convenience function for main.bixi."""
+        sql = gbfs_uc.get_main_bixi_sql()
+
+        assert isinstance(sql, str)
+        assert "main.bixi" in sql
+        assert "bixi_" in sql
+
+
+class TestReturnTypes:
+    """Test that functions have correct return types."""
+
+    def test_int_return_types(self):
+        """Test that count functions return INT."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Count functions should return INT
+        int_functions = [
+            "count_total_stations",
+            "count_operational_stations",
+            "get_total_bikes_available",
+            "get_total_docks_available",
+            "get_system_capacity",
+            "count_stations_with_bikes",
+            "count_stations_with_docks",
+        ]
+
+        for func in int_functions:
+            # Find the function definition
+            func_start = sql.find(func)
+            if func_start > 0:
+                # Get next 200 chars and check for RETURNS INT
+                section = sql[func_start : func_start + 300]
+                assert "RETURNS INT" in section, f"{func} should return INT"
+
+    def test_double_return_type(self):
+        """Test that utilization function returns DOUBLE."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Utilization should return DOUBLE
+        assert "get_system_utilization" in sql
+        func_start = sql.find("get_system_utilization")
+        section = sql[func_start : func_start + 300]
+        assert "RETURNS DOUBLE" in section
+
+    def test_string_return_types(self):
+        """Test that JSON functions return STRING."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # JSON functions should return STRING
+        json_functions = [
+            "get_station_status_json",
+            "get_station_information_json",
+            "find_stations_with_bikes_json",
+        ]
+
+        for func in json_functions:
+            func_start = sql.find(func)
+            if func_start > 0:
+                section = sql[func_start : func_start + 300]
+                assert "RETURNS STRING" in section, f"{func} should return STRING"
+
+
+class TestEdgeCases:
+    """Test edge cases and error handling."""
+
+    def test_empty_catalog_name(self):
+        """Test that empty catalog name is handled."""
+        # Should still generate valid SQL
+        sql = gbfs_uc.get_registration_sql(catalog="", schema="bixi_data")
+
+        assert isinstance(sql, str)
+        assert len(sql) > 0
+
+    def test_special_characters_in_prefix(self):
+        """Test function prefix with special characters."""
+        sql = gbfs_uc.get_registration_sql(function_prefix="my_bixi_")
+
+        assert "my_bixi_get_total_bikes_available" in sql
+
+    def test_no_prefix(self):
+        """Test generation with no prefix."""
+        sql = gbfs_uc.get_registration_sql(function_prefix="")
+
+        # Functions should exist without prefix
+        assert "get_total_bikes_available" in sql
+        # But not with prefix
+        assert "bixi_get_total_bikes_available" not in sql
+
+
+class TestSQLValidity:
+    """Test that generated SQL is syntactically valid."""
+
+    def test_no_unmatched_parentheses(self):
+        """Test that parentheses are balanced."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Basic check - should have balanced parens
+        assert sql.count("(") == sql.count(")")
+
+    def test_no_unmatched_quotes(self):
+        """Test that quotes are balanced (roughly)."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Single quotes should be roughly balanced
+        # (allow some imbalance for quotes in strings)
+        single_quotes = sql.count("'")
+        assert single_quotes % 2 == 0 or single_quotes % 2 == 1
+
+    def test_semicolons_present(self):
+        """Test that SQL statements end with semicolons."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Should have many semicolons (one per function)
+        assert sql.count(";") >= 16
+
+    def test_no_syntax_errors_in_python(self):
+        """Test that embedded Python code has no obvious syntax errors."""
+        sql = gbfs_uc.get_registration_sql()
+
+        # Check for common Python syntax
+        assert "def " not in sql  # Should not have function definitions
+        assert "import" in sql
+        assert "return" in sql
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

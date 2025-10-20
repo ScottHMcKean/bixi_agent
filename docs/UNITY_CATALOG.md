@@ -1,6 +1,8 @@
-# BIXI GBFS - Unity Catalog Functions
+# BIXI GBFS - Unity Catalog Functions (Standalone)
 
 This guide shows how to use BIXI GBFS API functions in Databricks Unity Catalog, making them available for SQL queries, dashboards, and cross-workspace sharing.
+
+**Key Feature:** These functions are **completely self-contained** and don't require the bixi_agent package. They only need `requests`, which is standard in Databricks.
 
 ## What are Unity Catalog Functions?
 
@@ -12,10 +14,11 @@ Unity Catalog functions allow you to:
 
 ## Quick Start
 
-### 1. Register Functions Using SQL
+### 1. Generate Registration SQL
 
-The easiest way is to use the provided SQL registration script:
+You have two options:
 
+**Option A: With bixi_agent (for convenience)**
 ```python
 from bixi_agent import gbfs_uc
 
@@ -30,11 +33,22 @@ sql = gbfs_uc.get_registration_sql(
 spark.sql(sql)
 ```
 
-Or copy the SQL and run it directly in a SQL notebook.
+**Option B: Without bixi_agent (production deployment)**
 
-### 2. Use Functions from SQL
+Copy the SQL directly from the example output or generate it manually. The functions are self-contained in the SQL - no package installation needed!
 
-Once registered, call them like any SQL function:
+### 2. Execute the SQL
+
+```python
+# Run the generated SQL
+spark.sql(sql)
+```
+
+The functions are now registered and ready to use!
+
+### 3. Use Functions from SQL
+
+Once registered, call them like any SQL function (no Python needed!):
 
 ```sql
 -- Get total bikes available
@@ -381,23 +395,28 @@ GRANT EXECUTE ON FUNCTION main.bixi_data.bixi_get_total_bikes_available TO `user
 DESCRIBE FUNCTION main.bixi_data.bixi_get_total_bikes_available;
 ```
 
+## Key Advantages
+
+✅ **No Custom Package Required** - Functions are self-contained in SQL  
+✅ **Only Standard Dependencies** - Just needs `requests` (built into Databricks)  
+✅ **Easy Deployment** - Copy/paste SQL, no pip install needed  
+✅ **Portable** - Works in any Databricks workspace  
+✅ **Governed** - Full Unity Catalog permissions apply  
+✅ **Real-time** - Direct API calls for fresh data  
+
 ## Troubleshooting
 
 ### Function Not Found
 
 Ensure you've registered the functions and are using the correct catalog/schema names.
 
-### Import Errors
-
-Make sure `bixi_agent` package is installed in your cluster:
-
-```python
-%pip install git+https://github.com/yourusername/bixi_agent.git
-```
-
 ### Network Access
 
 Functions make HTTP requests to the BIXI API. Ensure your Databricks workspace has internet access.
+
+### No bixi_agent Package Needed
+
+Unlike the Python API, these Unity Catalog functions are completely standalone. They're embedded in the SQL CREATE FUNCTION statements and don't require any package installation.
 
 ## Additional Resources
 

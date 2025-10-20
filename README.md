@@ -1,317 +1,292 @@
-# BIXI Agent
+# BIXI Agent 🚲🤖
 
-A comprehensive toolkit for BIXI data analysis, designed for Databricks notebook demos. Features web scraping, dataset management, and machine learning capabilities for trip prediction.
+**Build an AI agent for BIXI bike-sharing data in 3 simple steps**
+
+```
+Step 1: Get the Data  →  Step 2: Make the Tools  →  Step 3: Ship the Agent
+```
+
+## 🚀 Quick Start: Build Your Agent
+
+Follow our **[Agent Tutorial](AGENT_TUTORIAL.md)** to build an AI agent that answers questions about BIXI bikes using real-time data.
+
+### The 3-Step Process
+
+1. **[Get the Data](agent_tutorial/01_get_the_data.py)** (1-2 hours)
+   - GBFS API: Real-time station data (no auth!)
+   - Web Scraping: Additional context from BIXI website
+   - Historical Datasets: For training ML models
+
+2. **[Make the Tools](agent_tutorial/02_make_the_tools.py)** (2-3 hours)
+   - Unity Catalog Functions: 16 real-time query tools
+   - ML Models: Prediction and forecasting tools
+   - Test both tool types
+
+3. **[Ship the Agent](agent_tutorial/03_ship_the_agent.py)** (2-3 hours)
+   - Build agent with real-time + prediction capabilities
+   - Test with natural language questions
+   - Deploy to Databricks Model Serving
+
+### What You'll Build
+
+An agent with **real-time** and **predictive** capabilities:
+
+```
+User: "How many bikes are available near McGill right now?"
+Agent: [Uses UC function to query live data]
+       "15 stations near McGill have bikes available"
+
+User: "Will there be bikes at Berri station tomorrow at 5pm?"
+Agent: [Uses ML model to predict]
+       "Based on historical patterns, Berri station typically has 8-12 bikes at 5pm on weekdays"
+```
+
+**Start here:** 👉 **[AGENT_TUTORIAL.md](AGENT_TUTORIAL.md)**
+
+---
 
 ## Features
 
-### Real-Time Station Status (GBFS API)
-- Access real-time BIXI station data via GBFS API
-- Find stations with available bikes or docks
-- Search stations by name or location
-- Get system alerts and status updates
-- Support for both English and French
-- No API key required
-- **Unity Catalog integration** for SQL queries in Databricks
+### 📊 Complete Data Access
+**Real-Time:**
+- GBFS API - Live station data (1,000+ stations)
+- No authentication required!
 
-### Web Scraping
-- Recursive web scraping of BIXI website
-- HTML to markdown conversion with proper formatting
-- Support for local file storage and Databricks volumes
-- Modular design optimized for Databricks deployment
+**Historical:**
+- Dataset downloader for training data
+- Historical trip analysis
 
-### Machine Learning
-- Download BIXI datasets from Kaggle
-- Train ML models to predict trips by zone
-- Support for multiple model types (Linear Regression, Random Forest)
-- Feature engineering and data preprocessing
-- Model evaluation and visualization
-- **MLflow integration** for experiment tracking and model management
+**Contextual:**
+- Web scraping for BIXI website content
+- System alerts and notices
 
-### Databricks Notebooks
-- Simple, interactive demo notebooks
-- No CLI or complex setup required
-- Perfect for demonstrations and learning
+### 🔧 Two Types of Agent Tools
+
+**1. Unity Catalog Functions (Real-Time Queries)**
+- 16 SQL-callable functions
+- Self-contained, no dependencies
+- System metrics, station search, availability
+- Production-ready
+
+**2. ML Models (Predictions)**
+- Trip demand forecasting
+- Station occupancy prediction
+- Peak time identification
+- MLflow integration for tracking
+
+### 🤖 Complete Agent
+- Real-time + predictive capabilities
+- Natural language query interface
+- Databricks-native deployment
+- Scalable and governed
+
+---
 
 ## Installation
 
-### For Databricks
-
-Upload the `src/bixi_agent` directory to your Databricks workspace, then install dependencies in your notebook:
+### For Agent Tutorial (Databricks)
 
 ```python
-%pip install requests beautifulsoup4 markdownify lxml kaggle pandas numpy scikit-learn matplotlib seaborn mlflow
+# In Databricks notebook
+%pip install requests beautifulsoup4 markdownify lxml
 ```
+
+That's it! The agent tools are self-contained.
 
 ### For Local Development
 
 ```bash
-# Install core dependencies
+# Clone the repo
+git clone https://github.com/yourusername/bixi_agent.git
+cd bixi_agent
+
+# Install with uv
 uv sync
 
-# Install ML dependencies
-uv sync --extra ml
-
-# Install dev dependencies
-uv sync --extra dev
+# Or with pip
+pip install -e .
 ```
 
-## Usage - Databricks Notebooks
+---
 
-The repository includes comprehensive Databricks notebooks for easy demos:
+## Agent Tutorial: Detailed Walkthrough
 
-### Quick Start: Complete Demo
+### Step 1: Get the Data 🚲
 
-Run `notebooks/00_complete_demo.py` for a full end-to-end demonstration including:
-- Dataset download and exploration
-- Data preprocessing and feature engineering
-- Model training (Random Forest & Linear Regression)
-- Model comparison and evaluation
-- Making predictions
+Access all data sources your agent needs:
 
-### Individual Demo Notebooks
-
-#### 1. Web Scraping Demo (`notebooks/01_web_scraping_demo.py`)
 ```python
+# Real-time data (GBFS API)
+from bixi_agent import gbfs
+stations = gbfs.get_all_stations_summary()
+station = gbfs.get_station_by_name("Berri")
+
+# Web scraping (contextual data)
 from bixi_agent import BixiAgent
+agent = BixiAgent(output_path="./scraped_data")
+content = agent.scrape_website("https://bixi.com")
 
-# Scrape to Databricks volume
-agent = BixiAgent(
-    databricks_volume="/Volumes/main/bixi_data/scraped_data",
-    max_depth=2,
-    delay=1.0
-)
-scraped_content = agent.scrape_website("https://bixi.com")
-```
-
-#### 2. Dataset Download Demo (`notebooks/02_dataset_download_demo.py`)
-```python
+# Historical data (for ML training)
 from bixi_agent.dataset import BixiDatasetDownloader
-
-# Download BIXI dataset from Kaggle
-downloader = BixiDatasetDownloader("/Volumes/main/bixi_data/datasets")
-dataset_dir = downloader.download_bixi_dataset("aubertsigouin/biximtl")
-
-# Load data
-stations_df = downloader.load_stations_data(dataset_dir)
+downloader = BixiDatasetDownloader("./data")
 trips_df = downloader.load_trips_data(dataset_dir)
 ```
 
-**Note**: Kaggle API credentials required. Set environment variables or upload `kaggle.json` to Databricks.
+**Tutorial:** [01_get_the_data.py](agent_tutorial/01_get_the_data.py)  
+**Docs:** [GBFS_API.md](docs/GBFS_API.md)
 
-#### 3. ML Training Demo (`notebooks/03_ml_training_demo.py`)
-```python
-from bixi_agent.dataset import BixiDataProcessor
-from bixi_agent.ml import BixiTripPredictor
+### Step 2: Make the Tools 🔧
 
-# Process data
-processor = BixiDataProcessor()
-trips_with_zones = processor.merge_trips_with_stations(trips_df, stations_df)
-aggregated_trips = processor.aggregate_trips_by_zone_and_date(trips_with_zones)
-X, y = processor.prepare_features_for_ml(aggregated_trips)
-
-# Train model with MLflow tracking
-predictor = BixiTripPredictor(model_type="random_forest", enable_mlflow=True)
-metrics = predictor.train(X, y, test_size=0.2)
-
-# Make predictions
-prediction = predictor.predict_future_trips("Plateau-Mont-Royal", "2017-06-15")
-```
-
-## Usage - Python API
-
-For programmatic use outside of notebooks:
-
-### Real-Time Station Status (GBFS API)
+Create both real-time and predictive tools:
 
 ```python
-from bixi_agent import gbfs
-
-# Find stations with bikes available
-stations = gbfs.find_stations_with_bikes(min_bikes=5)
-print(f"Found {len(stations)} stations with 5+ bikes")
-
-# Search for a specific station
-station = gbfs.get_station_by_name("Berri")
-print(gbfs.format_station_for_display(station))
-
-# Get all stations summary
-all_stations = gbfs.get_all_stations_summary()
-total_bikes = sum(s.get("num_bikes_available", 0) for s in all_stations)
-print(f"Total bikes in system: {total_bikes}")
-
-# Get system alerts
-alerts = gbfs.get_system_alerts()
-```
-
-See `docs/GBFS_API.md` for complete API documentation.
-
-#### Unity Catalog Functions (Databricks)
-
-Register GBFS functions in Unity Catalog to query from SQL:
-
-```python
+# Tool Type 1: Unity Catalog Functions (real-time)
 from bixi_agent import gbfs_uc
+sql = gbfs_uc.get_registration_sql("main", "bixi")
+spark.sql(sql)  # Creates 16 SQL-callable functions
 
-# Generate and execute registration SQL
-sql = gbfs_uc.get_registration_sql("main", "bixi_data")
-spark.sql(sql)
+# Tool Type 2: ML Models (predictions)
+from bixi_agent.ml import BixiTripPredictor
+predictor = BixiTripPredictor(model_type="random_forest")
+predictor.train(X, y)
+predictor.save_model("./models/trip_predictor.pkl")
 ```
 
-Then use from SQL:
+Your agent can now use both:
 
 ```sql
--- Get total bikes available
-SELECT main.bixi_data.bixi_get_total_bikes_available('en');
+-- Real-time query
+SELECT main.bixi.bixi_get_total_bikes_available('en');
 
--- Find stations with bikes
-SELECT main.bixi_data.bixi_count_stations_with_bikes(5, 'en');
-
--- System utilization
-SELECT main.bixi_data.bixi_get_system_utilization('en');
+-- Combined with predictions
+SELECT main.bixi.bixi_predict_future_demand('Berri', '2024-06-15');
 ```
 
-See `docs/UNITY_CATALOG.md` for complete Unity Catalog documentation.
+**Tutorial:** [02_make_the_tools.py](agent_tutorial/02_make_the_tools.py)  
+**Docs:** [UNITY_CATALOG.md](docs/UNITY_CATALOG.md), [ml.py](src/bixi_agent/ml.py)
 
-### Web Scraping
+### Step 3: Ship the Agent 🚀
+
+Deploy agent with real-time + predictive capabilities:
 
 ```python
-from bixi_agent import BixiAgent
-
-# Scrape to local directory
-agent = BixiAgent(output_path="./scraped_data", max_depth=3, delay=1.0)
-scraped_content = agent.scrape_website("https://bixi.com")
-
-# Get statistics
-stats = agent.get_scraping_stats()
+class BixiAgent:
+    def query(self, question: str) -> str:
+        # Real-time queries (UC functions)
+        if "how many bikes" in question.lower():
+            result = spark.sql("SELECT main.bixi.bixi_get_total_bikes_available()")
+            return f"There are {result.collect()[0][0]} bikes available"
+        
+        # Predictions (ML models)
+        elif "will there be" in question.lower():
+            prediction = self.predictor.predict_future_trips(zone, date)
+            return f"Predicted {prediction} bikes based on historical patterns"
 ```
 
-### Machine Learning Pipeline
+**Tutorial:** [03_ship_the_agent.py](agent_tutorial/03_ship_the_agent.py)
 
-```python
-from bixi_agent.dataset import BixiDatasetDownloader, BixiDataProcessor
-from bixi_agent.ml import BixiMLPipeline
+---
 
-# Download dataset
-downloader = BixiDatasetDownloader("./bixi_data")
-dataset_dir = downloader.download_bixi_dataset("aubertsigouin/biximtl")
+## Example Agent Interactions
 
-# Load data
-stations_df = downloader.load_stations_data(dataset_dir)
-trips_df = downloader.load_trips_data(dataset_dir)
+### Real-Time Queries
 
-# Train model
-pipeline = BixiMLPipeline("./ml_results", enable_mlflow=True)
-metrics = pipeline.run_full_pipeline(trips_df, stations_df, "random_forest")
+**User:** "How many bikes are available?"  
+**Agent:** "There are currently 10,509 bikes available across the BIXI system."
 
-# Make predictions
-zones = ["Plateau-Mont-Royal", "Ville-Marie"]
-predictions = pipeline.predict_future_trips_by_zone(zones, "2017-06-15")
-```
+**User:** "Find the Berri station"  
+**Agent:** "Berri / de Maisonneuve has 5 bikes and 18 docks available."
 
-## Example Scripts
+**User:** "What's the system utilization?"  
+**Agent:** "The system is at 45.5% utilization with 1,031 operational stations."
 
-For local development and testing, example scripts are available in the `examples/` directory:
+### Predictions
 
-```bash
-# Get real-time station status
-uv run examples/gbfs_station_status.py
+**User:** "Will there be bikes at Berri tomorrow at 5pm?"  
+**Agent:** "Based on historical patterns, Berri station typically has 8-12 bikes available at 5pm on weekdays. High confidence."
 
-# Unity Catalog functions example
-uv run examples/unity_catalog_functions.py
+**User:** "When is the best time to find a bike in Plateau?"  
+**Agent:** "Plateau-Mont-Royal has highest bike availability between 10am-2pm on weekdays (average 150+ bikes). Avoid 8-9am and 5-6pm rush hours."
 
-# Run the ML pipeline example
-uv run examples/ml_pipeline_example.py
-
-# Run ML pipeline with MLflow tracking
-uv run examples/ml_pipeline_with_mlflow.py
-
-# Run enhanced ML pipeline with real Kaggle data
-uv run examples/real_data_ml_pipeline.py
-
-# Run basic usage example
-uv run examples/basic_usage.py
-```
-
-## MLflow Experiment Tracking
-
-The ML pipeline includes comprehensive MLflow integration for experiment tracking:
-
-```bash
-# Start MLflow UI to view experiments
-uv run mlflow ui --port 5000
-
-# Then navigate to http://localhost:5000 to view:
-# - Experiment runs and comparisons
-# - Model metrics (R², MAE, RMSE)
-# - Feature importance scores
-# - Model artifacts and parameters
-# - Cross-validation results
-```
-
-**MLflow Features:**
-- **Experiment Tracking**: Automatic logging of parameters, metrics, and artifacts
-- **Model Registry**: Save and version trained models
-- **Comparison**: Compare different model types and hyperparameters
-- **Reproducibility**: Track all experiment details for reproducible results
-
-In Databricks, view experiments in the **Experiments** tab.
-
-## Machine Learning Model Details
-
-### Features Used
-- **Zone**: Montreal borough/district (one-hot encoded)
-- **Day of Week**: 0-6 (Monday-Sunday)
-- **Month**: 1-12
-- **Weekend**: Boolean flag for Saturday/Sunday
-- **Temporal Features**: Cyclical encoding for time-based patterns
-
-### Model Types
-- **Random Forest**: Default choice, handles non-linear relationships well
-- **Linear Regression**: Simpler model, good baseline
-
-### Model Outputs
-- **Trip Count**: Predicted number of trips for a specific zone and date
-- **Feature Importance**: For Random Forest models, shows which features matter most
-- **Evaluation Metrics**: R², MAE, RMSE, and cross-validation scores
-
-### Data Processing
-1. **Merge**: Trip data with station data to get zone information
-2. **Aggregate**: Count trips by zone and date
-3. **Feature Engineering**: Add temporal features (day of week, month, weekend flag)
-4. **Encoding**: One-hot encode categorical variables (zones)
+---
 
 ## Project Structure
 
 ```
 bixi_agent/
-├── notebooks/              # Databricks demo notebooks
-│   ├── 00_complete_demo.py
-│   ├── 01_web_scraping_demo.py
-│   ├── 02_dataset_download_demo.py
-│   ├── 03_ml_training_demo.py
-│   └── 04_unity_catalog_gbfs.py
-├── src/bixi_agent/        # Core library
-│   ├── __init__.py
-│   ├── scraper.py         # Web scraping
-│   ├── storage.py         # Storage backends
-│   ├── dataset.py         # Dataset management
-│   ├── ml.py              # ML models
-│   ├── gbfs.py            # Real-time GBFS API
-│   └── gbfs_uc.py         # Unity Catalog wrappers
-├── examples/              # Example scripts
-│   ├── gbfs_station_status.py
-│   ├── unity_catalog_functions.py
-│   ├── ml_pipeline_example.py
-│   └── ...
-├── docs/                  # Documentation
-│   ├── GBFS_API.md        # GBFS API documentation
-│   ├── GBFS_QUICKSTART.md # Quick start guide
-│   ├── UNITY_CATALOG.md   # Unity Catalog integration
-│   └── README.md
-├── tests/                 # Test suite
-├── pyproject.toml         # Dependencies
-└── README.md
+├── AGENT_TUTORIAL.md          # Complete agent tutorial guide
+├── agent_tutorial/             # Step-by-step notebooks
+│   ├── 01_get_the_data.py     #   30 min - Learn data access
+│   ├── 02_make_the_tools.py   #   1 hour - Create tools
+│   └── 03_ship_the_agent.py   #   2 hours - Deploy agent
+├── src/bixi_agent/
+│   ├── gbfs.py                 # Real-time GBFS API client
+│   └── gbfs_uc.py              # Unity Catalog tool generator
+├── docs/
+│   ├── GBFS_API.md             # API reference
+│   └── UNITY_CATALOG.md        # Tools reference
+└── examples/                   # Standalone examples
 ```
+
+---
+
+## Additional Features (Optional)
+
+Beyond the core agent workflow, this repo includes:
+
+### Web Scraping
+Scrape the BIXI website for additional data:
+
+```python
+from bixi_agent import BixiAgent
+
+agent = BixiAgent(output_path="./scraped_data")
+content = agent.scrape_website("https://bixi.com")
+```
+
+**Files:** `src/bixi_agent/scraper.py`, `src/bixi_agent/storage.py`  
+**Notebooks:** `notebooks/01_web_scraping_demo.py`
+
+### Machine Learning
+Train models on historical BIXI data:
+
+```python
+from bixi_agent.ml import BixiMLPipeline
+
+pipeline = BixiMLPipeline("./ml_results", enable_mlflow=True)
+metrics = pipeline.run_full_pipeline(trips_df, stations_df, "random_forest")
+```
+
+**Files:** `src/bixi_agent/ml.py`, `src/bixi_agent/dataset.py`  
+**Notebooks:** `notebooks/03_ml_training_demo.py`
+
+### MLflow Integration
+Track experiments and model versions:
+
+```bash
+uv run mlflow ui --port 5000
+```
+
+**Examples:** `examples/ml_pipeline_with_mlflow.py`
+
+---
+
+## Documentation
+
+### Agent Tutorial
+- **[AGENT_TUTORIAL.md](AGENT_TUTORIAL.md)** - Complete walkthrough
+- **[agent_tutorial/](agent_tutorial/)** - Step-by-step notebooks
+
+### API & Tools
+- **[GBFS_API.md](docs/GBFS_API.md)** - Data API reference
+- **[GBFS_QUICKSTART.md](docs/GBFS_QUICKSTART.md)** - 5-minute quick start
+- **[UNITY_CATALOG.md](docs/UNITY_CATALOG.md)** - Tools documentation
+
+### Other Features
+- **[notebooks/](notebooks/)** - ML and scraping demos
+- **[examples/](examples/)** - Standalone scripts
+
+---
 
 ## Development
 
@@ -325,93 +300,69 @@ uv run pytest
 # Format code
 uv run black src tests
 uv run isort src tests
+
+# Run agent tutorial tests
+uv run pytest tests/test_gbfs.py tests/test_gbfs_uc.py
 ```
 
-## Databricks Deployment
+---
 
-### Upload to Databricks
+## FAQ
 
-1. Upload the `notebooks/` directory to your Databricks workspace
-2. Upload the `src/bixi_agent/` directory to your workspace or a shared location
-3. Run the notebooks in sequence
+### Do I need API keys?
+No! BIXI's data is completely open. No authentication required.
 
-### Using Databricks Volumes
+### Can I use this in production?
+Yes! The Unity Catalog tools are production-ready and self-contained.
 
-The notebooks are pre-configured to use Databricks Volumes for data storage:
+### What if I only want the agent tools?
+Just use `src/bixi_agent/gbfs_uc.py` - it generates standalone SQL functions.
 
-```python
-# Web scraping output
-SCRAPED_DATA_DIR = "/Volumes/main/bixi_data/scraped_data"
+### Can I use this without Databricks?
+The GBFS API client (`src/bixi_agent/gbfs.py`) works anywhere. Unity Catalog functions require Databricks.
 
-# Dataset storage
-DATASET_DIR = "/Volumes/main/bixi_data/datasets"
+### How often is the data updated?
+BIXI data refreshes approximately every 10 seconds.
 
-# ML results
-ML_RESULTS_DIR = "/Volumes/main/bixi_data/ml_results"
-```
+---
 
-Modify these paths in the notebooks to match your Databricks workspace structure.
+## Support & Community
 
-### Kaggle Credentials in Databricks
+- **Tutorial Questions:** See [AGENT_TUTORIAL.md](AGENT_TUTORIAL.md)
+- **API Issues:** Check [GBFS_API.md](docs/GBFS_API.md)
+- **Examples:** Browse [examples/](examples/) and [agent_tutorial/](agent_tutorial/)
 
-To download datasets from Kaggle in Databricks:
-
-1. Go to https://www.kaggle.com/account
-2. Click "Create New API Token"
-3. Download `kaggle.json`
-4. In your Databricks notebook, set environment variables:
-
-```python
-import os
-os.environ["KAGGLE_USERNAME"] = "your_username"
-os.environ["KAGGLE_KEY"] = "your_api_key"
-```
-
-Or upload `kaggle.json` to DBFS and set the config directory.
-
-## Dependencies
-
-### Core Dependencies (Production)
-- `requests` - HTTP requests
-- `beautifulsoup4` - HTML parsing
-- `markdownify` - HTML to markdown conversion
-- `lxml` - XML/HTML processing
-- `urllib3` - HTTP client
-
-### ML Dependencies (Optional)
-- `kaggle` - Kaggle API
-- `pandas` - Data manipulation
-- `numpy` - Numerical computing
-- `scikit-learn` - Machine learning
-- `matplotlib` - Plotting
-- `seaborn` - Statistical visualization
-- `mlflow` - Experiment tracking
-
-### Development Dependencies
-- `pytest` - Testing framework
-- `pytest-cov` - Coverage reporting
-- `black` - Code formatting
-- `isort` - Import sorting
-- `mypy` - Type checking
-- `ruff` - Linting
-
-### Databricks Dependencies (Optional)
-- `databricks-sdk` - Databricks SDK
-- `databricks-connect` - Spark connectivity
+---
 
 ## License
 
-See LICENSE file for details.
+See [LICENSE](LICENSE) for details.
 
-## Contributing
+---
 
-This project uses modern Python practices:
-- `uv` for dependency management
-- `pytest` for testing
-- Simple, modular design with clear separation of concerns
-- Functions over classes where appropriate
-- Well-defined single responsibilities for each module
+## Credits
 
-## Support
+- BIXI Montreal for providing open data
+- GBFS specification for standardized bike-share data
+- Databricks for Unity Catalog and agent infrastructure
 
-For issues, questions, or contributions, please refer to the project repository.
+---
+
+## Get Started Now!
+
+👉 **[Start the Agent Tutorial](AGENT_TUTORIAL.md)**
+
+Build your first AI agent in ~3.5 hours! 🚀
+
+```bash
+# Clone and start
+git clone https://github.com/yourusername/bixi_agent.git
+cd bixi_agent
+
+# Open agent_tutorial/01_get_the_data.py in Databricks
+# Follow along with AGENT_TUTORIAL.md
+```
+
+**Questions?** Check the [tutorial](AGENT_TUTORIAL.md) or browse the [docs](docs/).
+
+Happy agent building! 🤖🚲
