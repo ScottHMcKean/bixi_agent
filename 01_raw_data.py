@@ -42,7 +42,6 @@
 
 # COMMAND ----------
 
-import sys
 import logging
 import os
 import random
@@ -74,11 +73,12 @@ print("✅ All libraries imported successfully!")
 
 # COMMAND ----------
 
-CATALOG = 'shm'
+CATALOG = 'hack'
 SCHEMA = 'bixi'
 
 # COMMAND ----------
 
+spark.sql(f"CREATE CATALOG IF NOT EXISTS {CATALOG}")
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA}")
 spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.{SCHEMA}.raw_data")
 
@@ -110,6 +110,10 @@ print(f"  Dataset: {DATA_DIR}")
 # MAGIC ## Scrape BIXI Website
 # MAGIC
 # MAGIC This section scrapes the BIXI website for content. Skip if you only want to work with trip data.
+
+# COMMAND ----------
+
+SCRAPE_DIR
 
 # COMMAND ----------
 
@@ -147,6 +151,19 @@ else:
 
 # MAGIC %md
 # MAGIC ## Download Dataset
+
+# COMMAND ----------
+
+from pathlib import Path
+
+local_path = Path("./bixi_scrape/")
+dbfs_path = SCRAPE_DIR
+
+for md_file in local_path.glob("*.md"):
+    with open(md_file, "r") as f:
+        content = f.read()
+        
+dbutils.fs.put(dbfs_path, content, overwrite=True)
 
 # COMMAND ----------
 
@@ -219,3 +236,19 @@ od_table = f"{CATALOG}.{SCHEMA}.od_trips"
 od_df.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable(od_table)
 print(f"✅ OD table written: {od_table}")
 display(od_df)
+
+# COMMAND ----------
+
+od_df.columns
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+

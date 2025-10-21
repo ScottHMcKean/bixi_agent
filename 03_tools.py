@@ -6,8 +6,44 @@
 
 # COMMAND ----------
 
+
+
+# COMMAND ----------
+
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE FUNCTION shm.bixi.get_total_stations()
+# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.recent_trips(
+# MAGIC   station_code STRING
+# MAGIC )
+# MAGIC RETURNS TABLE (
+# MAGIC   start_date TIMESTAMP,
+# MAGIC   start_station_code STRING,
+# MAGIC   end_date TIMESTAMP,
+# MAGIC   end_station_code STRING,
+# MAGIC   duration_sec INT,
+# MAGIC   is_member BOOLEAN
+# MAGIC )
+# MAGIC RETURN
+# MAGIC SELECT
+# MAGIC   start_date,
+# MAGIC   CAST(start_station_code AS STRING) AS start_station_code,
+# MAGIC   end_date,
+# MAGIC   CAST(end_station_code AS STRING) AS end_station_code,
+# MAGIC   duration_sec,
+# MAGIC   CAST(is_member AS BOOLEAN) AS is_member
+# MAGIC FROM hack.bixi.od_trips
+# MAGIC WHERE start_station_code = CAST(station_code AS INT)
+# MAGIC ORDER BY start_date DESC
+# MAGIC LIMIT 10;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM hack.bixi.recent_trips('6073')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.get_total_stations()
 # MAGIC RETURNS INTEGER
 # MAGIC LANGUAGE PYTHON
 # MAGIC COMMENT "Gives the total number of stations currently on the bixi network"
@@ -29,12 +65,12 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT shm.bixi.get_total_stations()
+# MAGIC SELECT hack.bixi.get_total_stations()
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE FUNCTION shm.bixi.get_station_info(station_code STRING)
+# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.get_station_info(station_code STRING)
 # MAGIC RETURNS TABLE (
 # MAGIC   capacity BIGINT,
 # MAGIC   eightd_has_key_dispenser BOOLEAN,
@@ -100,12 +136,12 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM shm.bixi.get_station_info('6073')
+# MAGIC SELECT * FROM hack.bixi.get_station_info('6073')
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE FUNCTION shm.bixi.stations_within_1km(target_lat DOUBLE, target_lon DOUBLE)
+# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.stations_within_1km(target_lat DOUBLE, target_lon DOUBLE)
 # MAGIC RETURNS TABLE (
 # MAGIC   short_name STRING
 # MAGIC )
@@ -153,4 +189,4 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM shm.bixi.stations_within_1km(45.5, -73.5)
+# MAGIC SELECT * FROM hack.bixi.stations_within_1km(45.5, -73.5)

@@ -2,7 +2,6 @@
 mlruns/*
 scraped_data/
 scraped_*/
-*.md
 !README.md
 !docs/*.md
 
