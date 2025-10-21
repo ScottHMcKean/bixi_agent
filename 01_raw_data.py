@@ -162,8 +162,8 @@ dbfs_path = SCRAPE_DIR
 for md_file in local_path.glob("*.md"):
     with open(md_file, "r") as f:
         content = f.read()
-        
-dbutils.fs.put(dbfs_path, content, overwrite=True)
+    dbfs_file_path = f"{dbfs_path}/{md_file.name}"
+    dbutils.fs.put(dbfs_file_path, content, overwrite=True)
 
 # COMMAND ----------
 
@@ -236,19 +236,3 @@ od_table = f"{CATALOG}.{SCHEMA}.od_trips"
 od_df.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable(od_table)
 print(f"✅ OD table written: {od_table}")
 display(od_df)
-
-# COMMAND ----------
-
-od_df.columns
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-
