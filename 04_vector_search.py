@@ -16,7 +16,7 @@ doc_df = (
     spark.read
     .format("text")
     .option("wholetext", "true")
-    .load("/Volumes/hack/bixi/raw_data/scrape/*.md")
+    .load("/Volumes/workspace/default/raw_data/scrape/*.md")
     .withColumn("unique_id", F.monotonically_increasing_id())
     .select(
         "unique_id",
@@ -29,12 +29,12 @@ display(doc_df)
 
 # COMMAND ----------
 
-doc_df.write.mode('overwrite').saveAsTable('hack.bixi.documents')
+doc_df.write.mode('overwrite').saveAsTable('workspace.default.documents')
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC ALTER TABLE hack.bixi.documents SET TBLPROPERTIES (delta.enableChangeDataFeed = true);
+# MAGIC ALTER TABLE workspace.default.documents SET TBLPROPERTIES (delta.enableChangeDataFeed = true);
 
 # COMMAND ----------
 
@@ -60,8 +60,8 @@ client.create_endpoint(
 
 index = client.create_delta_sync_index(
     endpoint_name="bixi_vs_endpoint",
-    source_table_name="hack.bixi.documents",
-    index_name="hack.bixi.documents_index",
+    source_table_name="workspace.default.documents",
+    index_name="workspace.default.documents_index",
     pipeline_type="TRIGGERED",
     primary_key="unique_id",                # Must be present in your table
     embedding_source_column="value",  # Text column for embedding
@@ -71,18 +71,21 @@ index = client.create_delta_sync_index(
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT *
+# MAGIC SELECT 
+# MAGIC   *, 
+# MAGIC   floor(unique_id / 5) AS unique_id_bin_10 
 # MAGIC FROM vector_search(
-# MAGIC   index=>'hack.bixi.documents_index',
+# MAGIC   index=>'workspace.default.documents_index',
 # MAGIC   query_text=>"Trip Fares",
-# MAGIC   num_results=>3,
+# MAGIC   num_results=>50,
 # MAGIC   query_type=>'hybrid'
 # MAGIC )
+# MAGIC ORDER BY unique_id_bin_10 DESC
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.doc_search(
+# MAGIC CREATE OR REPLACE FUNCTION workspace.default.doc_search(
 # MAGIC   description STRING COMMENT 'A search of bixi documents'
 # MAGIC )
 # MAGIC RETURNS TABLE (
@@ -96,7 +99,7 @@ index = client.create_delta_sync_index(
 # MAGIC RETURN
 # MAGIC SELECT *
 # MAGIC FROM vector_search(
-# MAGIC   index=>'hack.bixi.documents_index',
+# MAGIC   index=>'workspace.default.documents_index',
 # MAGIC   query_text=>description,
 # MAGIC   num_results=>3,
 # MAGIC   query_type=>'hybrid'
@@ -105,4 +108,4 @@ index = client.create_delta_sync_index(
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM hack.bixi.doc_search("Trip Fares")
+# MAGIC SELECT * FROM workspace.default.doc_search("Trip Fares")

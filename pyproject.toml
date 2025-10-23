@@ -17,6 +17,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "markdownify",
+    "kaggle",
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "pytest-rerunfailures>=12.0",

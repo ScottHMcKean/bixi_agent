@@ -73,8 +73,8 @@ print("✅ All libraries imported successfully!")
 
 # COMMAND ----------
 
-CATALOG = 'hack'
-SCHEMA = 'bixi'
+CATALOG = 'workspace'
+SCHEMA = 'default'
 
 # COMMAND ----------
 

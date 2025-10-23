@@ -6,12 +6,8 @@
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.recent_trips(
+# MAGIC CREATE OR REPLACE FUNCTION workspace.default.recent_trips(
 # MAGIC   station_code STRING
 # MAGIC )
 # MAGIC RETURNS TABLE (
@@ -38,12 +34,12 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM hack.bixi.recent_trips('6073')
+# MAGIC SELECT * FROM workspace.default.recent_trips('6073')
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.get_total_stations()
+# MAGIC CREATE OR REPLACE FUNCTION workspace.default.get_total_stations()
 # MAGIC RETURNS INTEGER
 # MAGIC LANGUAGE PYTHON
 # MAGIC COMMENT "Gives the total number of stations currently on the bixi network"
@@ -65,12 +61,12 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT hack.bixi.get_total_stations()
+# MAGIC SELECT workspace.default.get_total_stations()
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.get_station_info(station_code STRING)
+# MAGIC CREATE OR REPLACE FUNCTION workspace.default.get_station_info(station_code STRING)
 # MAGIC RETURNS TABLE (
 # MAGIC   capacity BIGINT,
 # MAGIC   eightd_has_key_dispenser BOOLEAN,
@@ -136,12 +132,12 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM hack.bixi.get_station_info('6073')
+# MAGIC SELECT * FROM workspace.default.get_station_info('6073')
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE FUNCTION hack.bixi.stations_within_1km(target_lat DOUBLE, target_lon DOUBLE)
+# MAGIC CREATE OR REPLACE FUNCTION workspace.default.stations_within_1km(target_lat DOUBLE, target_lon DOUBLE)
 # MAGIC RETURNS TABLE (
 # MAGIC   short_name STRING
 # MAGIC )
@@ -189,4 +185,4 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM hack.bixi.stations_within_1km(45.5, -73.5)
+# MAGIC SELECT * FROM workspace.default.stations_within_1km(45.5, -73.5)
