@@ -26,7 +26,7 @@
 # MAGIC   CAST(end_station_code AS STRING) AS end_station_code,
 # MAGIC   duration_sec,
 # MAGIC   CAST(is_member AS BOOLEAN) AS is_member
-# MAGIC FROM hack.bixi.od_trips
+# MAGIC FROM workspace.default.od_trips
 # MAGIC WHERE start_station_code = CAST(station_code AS INT)
 # MAGIC ORDER BY start_date DESC
 # MAGIC LIMIT 10;
