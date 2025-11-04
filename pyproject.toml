@@ -11,13 +11,14 @@ dependencies = [
     "requests>=2.31.0",
     "beautifulsoup4>=4.12.0",
     "markdownify>=0.11.6",
+    "mlflow~=3.4",
     "urllib3>=2.0.0",
     "lxml>=4.9.0",
+    "typing_extensions>=4.7.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "markdownify",
     "kaggle",
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
@@ -36,7 +37,7 @@ ml = [
     "matplotlib>=3.7.0",
     "seaborn>=0.12.0",
     "numpy>=1.24.0",
-    "mlflow>=3.2.0",
+    "mlflow==3.2.0",
 ]
 
 [tool.black]

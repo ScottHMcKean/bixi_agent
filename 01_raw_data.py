@@ -12,19 +12,13 @@
 # MAGIC 1. **Web Scraping**: Scrape BIXI website for content
 # MAGIC 2. **Dataset Management**: Download and explore BIXI datasets
 # MAGIC
-# MAGIC ## Quick Start
-# MAGIC
-# MAGIC Run all cells in sequence to see the complete workflow. Tested with Severless v3.
+# MAGIC Tested with Severless v4.
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Part 1: Setup
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Install Dependencies
+# MAGIC ## Setup & Config
+# MAGIC Install dependencies and import libraries, followed by importing our config file
 
 # COMMAND ----------
 
@@ -37,17 +31,9 @@
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Import Libraries
-
-# COMMAND ----------
-
-import logging
+import mlflow
 import os
-import random
 from pathlib import Path
-from datetime import datetime, timedelta
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -56,53 +42,26 @@ import seaborn as sns
 from src.bixi_agent import BixiAgent
 from src.bixi_agent.ml import BixiTripPredictor, BixiMLPipeline
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Set plot style
-sns.set_style("whitegrid")
-plt.rcParams["figure.figsize"] = (12, 6)
-
-print("✅ All libraries imported successfully!")
-
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Configuration
-
-# COMMAND ----------
-
-CATALOG = 'workspace'
-SCHEMA = 'default'
+import mlflow
+config = mlflow.models.ModelConfig(development_config='config.yaml')
+CATALOG = config.get('catalog')
+SCHEMA = config.get('schema')
+RAW_DATA_VOL = config.get("raw_data_vol")
 
 # COMMAND ----------
 
 spark.sql(f"CREATE CATALOG IF NOT EXISTS {CATALOG}")
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA}")
-spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.{SCHEMA}.raw_data")
+spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.{SCHEMA}.{RAW_DATA_VOL}")
 
 # COMMAND ----------
 
 # Main configuration
-RAW_ROOT = f"/Volumes/{CATALOG}/{SCHEMA}/raw_data"  
+RAW_ROOT = f"/Volumes/{CATALOG}/{SCHEMA}/{RAW_DATA_VOL}"  
 SCRAPE_DIR = f"{RAW_ROOT}/scrape"
 DATA_DIR = f"{RAW_ROOT}/data"
-
-# Scraping configuration
-SCRAPE_START_URL = "https://bixi.com"
-SCRAPE_MAX_DEPTH = 5  # Limited for demo
-SCRAPE_DELAY = 0.1
-
-print("📋 Configuration:")
-print(f"  Workspace Root: {RAW_ROOT}")
-print(f"  Scraped Data: {SCRAPE_DIR}")
-print(f"  Dataset: {DATA_DIR}")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC # Part 2: Web Scraping
 
 # COMMAND ----------
 
@@ -113,16 +72,7 @@ print(f"  Dataset: {DATA_DIR}")
 
 # COMMAND ----------
 
-SCRAPE_DIR
-
-# COMMAND ----------
-
-# Set to True to enable web scraping
-RUN_WEB_SCRAPING = True  # Change to True to scrape
-
-if RUN_WEB_SCRAPING:
-    print("🕷️  Starting web scraping...")
-
+if config.get('run_web_scrape'):
     # Initialize agent
     agent = BixiAgent(
         databricks_volume=SCRAPE_DIR,
@@ -140,7 +90,7 @@ if RUN_WEB_SCRAPING:
     print(f"   Successful: {stats['successful_pages']}")
     print(f"   Saved to: {SCRAPE_DIR}")
 else:
-    print("⏭️  Web scraping skipped (set RUN_WEB_SCRAPING = True to enable)")
+    print("⏭️  Web scraping skipped")
 
 # COMMAND ----------
 
@@ -169,8 +119,8 @@ for md_file in local_path.glob("*.md"):
 
 # Databricks does not recommend this poor practice =)
 import os
-os.environ['KAGGLE_USERNAME'] = 'scottmckean'
-os.environ['KAGGLE_KEY'] = '7e6e805cb93db325a1fbf609052ae421'
+os.environ['KAGGLE_USERNAME'] = dbutils.secrets.get('shm','kaggle_user')
+os.environ['KAGGLE_KEY'] = dbutils.secrets.get('shm','kaggle_key')
 
 # Download raw data
 from kaggle.api.kaggle_api_extended import KaggleApi

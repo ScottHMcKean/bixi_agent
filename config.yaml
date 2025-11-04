@@ -1,0 +1,7 @@
+catalog: shm
+schema: default
+raw_data_vol: raw_data
+run_web_scrape: false
+scrape_url: https://bixi.com
+scrape_max_depth: 5
+scrape_delay: 0.1
