@@ -56,45 +56,17 @@
 
 from bixi_agent import gbfs_uc
 
-# Generate registration SQL
-# These functions are SELF-CONTAINED - they don't need bixi_agent installed!
-sql = gbfs_uc.get_registration_sql(
-    catalog="main",  # Your catalog
-    schema="bixi",  # Your schema
-    function_prefix="bixi_",  # Prefix for function names
-)
+# Generate SQL for each function
+for func_name in gbfs_uc.list_available_functions():
+    sql = gbfs_uc.get_function_sql(func_name, catalog="main", schema="bixi")
+    spark.sql(sql)
 
-# Show a preview
-print("Generated SQL (first 2000 chars):")
-print("=" * 80)
-print(sql[:2000])
-print("...")
-print("=" * 80)
-print(f"\nTotal SQL length: {len(sql):,} characters")
-print(f"Number of functions: {sql.count('CREATE OR REPLACE FUNCTION')}")
+print("✅ Registered all Unity Catalog functions")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Step 2: Register the Tools
-# MAGIC
-# MAGIC Run this once to create all 16 tools in Unity Catalog
-
-# COMMAND ----------
-
-# Register all functions
-spark.sql(sql)
-
-print("✓ Successfully registered 16 BIXI agent tools!")
-print("\nTools created:")
-print("  • 6 aggregate functions (counts, totals, utilization)")
-print("  • 2 count functions (bikes/docks availability)")
-print("  • 8 JSON functions (detailed data)")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Step 3: Verify Tools Are Available
+# MAGIC ## Step 2: Verify Tools Are Available
 
 # COMMAND ----------
 
@@ -417,10 +389,11 @@ print(tools_doc)
 # MAGIC ## Quick Reference
 # MAGIC
 # MAGIC ```python
-# MAGIC # Generate tools
+# MAGIC # Register functions
 # MAGIC from bixi_agent import gbfs_uc
-# MAGIC sql = gbfs_uc.get_registration_sql("main", "bixi")
-# MAGIC spark.sql(sql)
+# MAGIC for func in gbfs_uc.list_available_functions():
+# MAGIC     sql = gbfs_uc.get_function_sql(func)
+# MAGIC     spark.sql(sql)
 # MAGIC ```
 # MAGIC
 # MAGIC ```sql

@@ -42,9 +42,15 @@ print("✓ Ready to register UC functions!")
 try:
     from bixi_agent import gbfs_uc
 
-    sql = gbfs_uc.get_registration_sql(
-        catalog="main", schema="bixi_data", function_prefix="bixi_"
-    )
+    # List and register all functions individually
+    functions = gbfs_uc.list_available_functions(function_prefix="bixi_")
+    print(f"📋 Registering {len(functions)} functions...")
+
+    for i, func_name in enumerate(functions, 1):
+        sql = gbfs_uc.get_function_sql(
+            func_name, catalog="main", schema="bixi_data", include_schema=(i == 1)
+        )
+        print(f"✅ {i}/{len(functions)}: {func_name}")
     print("✓ Generated SQL using bixi_agent")
 
 except ImportError:

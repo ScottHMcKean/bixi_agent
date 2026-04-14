@@ -18,9 +18,21 @@ def show_registration_sql():
     print("They only need 'requests', which is standard in Databricks.")
     print()
 
-    sql = gbfs_uc.get_registration_sql(
-        catalog="main", schema="bixi_data", function_prefix="bixi_"
-    )
+    # List all available functions
+    functions = gbfs_uc.list_available_functions(function_prefix="bixi_")
+    print(f"Found {len(functions)} functions")
+
+    # Generate SQL for all functions individually
+    sql_parts = [f"-- Register {len(functions)} Unity Catalog functions\n"]
+    sql_parts.append("CREATE SCHEMA IF NOT EXISTS main.bixi_data;\n")
+
+    for func_name in functions:
+        sql = gbfs_uc.get_function_sql(
+            func_name, catalog="main", schema="bixi_data", include_schema=False
+        )
+        sql_parts.append(sql)
+
+    sql = "\n".join(sql_parts)
 
     print("First 2000 characters of SQL:")
     print("-" * 80)
@@ -163,9 +175,14 @@ Step 1: Generate Registration SQL
 In a Databricks notebook:
 
     from bixi_agent import gbfs_uc
-    sql = gbfs_uc.get_registration_sql("main", "bixi_data")
     
-    # Or generate without the library:
+    # Register all functions individually
+    for func_name in gbfs_uc.list_available_functions():
+        sql = gbfs_uc.get_function_sql(func_name)
+        spark.sql(sql)
+        print(f"✅ {func_name}")
+    
+    # Or generate SQL without the library:
     # Copy the SQL from the output of this script
 
 Step 2: Execute Registration SQL

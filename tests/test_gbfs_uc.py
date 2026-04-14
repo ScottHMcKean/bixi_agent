@@ -60,46 +60,16 @@ class TestSQLGeneration:
         assert "bixi_count_total_stations" in functions
         assert "bixi_get_all_stations_summary_json" in functions
 
-    def test_get_registration_sql(self):
-        """Test SQL generation with default parameters."""
-        sql = gbfs_uc.get_registration_sql()
-
-        assert isinstance(sql, str)
-        assert len(sql) > 0
-
-        # Check for schema creation
-        assert "CREATE SCHEMA IF NOT EXISTS" in sql
-        # Default is now main.bixi (cleaner name)
-        assert "main.bixi" in sql
-
-    def test_custom_catalog_schema(self):
-        """Test SQL generation with custom catalog and schema."""
-        sql = gbfs_uc.get_registration_sql(
-            catalog="test_catalog", schema="test_schema", function_prefix="test_"
-        )
-
-        assert "test_catalog.test_schema" in sql
-        assert "test_get_total_bikes_available" in sql
-        assert "test_count_total_stations" in sql
-
-    def test_function_prefix(self):
-        """Test that function prefix is applied correctly."""
-        sql = gbfs_uc.get_registration_sql(
-            catalog="main", schema="bixi", function_prefix="bixi_"
-        )
-
-        # Check that functions have the prefix
-        assert "bixi_get_total_bikes_available" in sql
-        assert "bixi_count_stations_with_bikes" in sql
-        assert "bixi_get_station_by_name_json" in sql
-
 
 class TestFunctionDefinitions:
     """Test that all expected functions are defined in SQL."""
 
     def test_all_aggregate_functions_present(self):
         """Test that all aggregate functions are in SQL."""
-        sql = gbfs_uc.get_registration_sql()
+        functions = gbfs_uc.list_available_functions()
+        sql = "\n".join(
+            [gbfs_uc.get_function_sql(f, include_schema=False) for f in functions]
+        )
 
         aggregate_functions = [
             "get_total_bikes_available",
@@ -115,7 +85,12 @@ class TestFunctionDefinitions:
 
     def test_all_count_functions_present(self):
         """Test that all count functions are in SQL."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         count_functions = [
             "count_stations_with_bikes",
@@ -127,7 +102,12 @@ class TestFunctionDefinitions:
 
     def test_all_json_functions_present(self):
         """Test that all JSON functions are in SQL."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         json_functions = [
             "get_station_status_json",
@@ -149,7 +129,12 @@ class TestSQLStructure:
 
     def test_create_or_replace_function_syntax(self):
         """Test that functions use CREATE OR REPLACE syntax."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Count function definitions
         create_count = sql.count("CREATE OR REPLACE FUNCTION")
@@ -159,28 +144,48 @@ class TestSQLStructure:
 
     def test_python_language_specified(self):
         """Test that functions specify LANGUAGE PYTHON."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Each function should have LANGUAGE PYTHON
         assert sql.count("LANGUAGE PYTHON") >= 16
 
     def test_comments_present(self):
         """Test that functions have COMMENT documentation."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Each function should have a COMMENT
         assert sql.count("COMMENT") >= 16
 
     def test_default_parameters(self):
         """Test that language parameters have defaults."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Functions should have language STRING DEFAULT 'en'
         assert "language STRING DEFAULT 'en'" in sql
 
     def test_as_dollar_dollar_syntax(self):
         """Test that function bodies use AS $$ syntax."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Each function should have AS $$ ... $$;
         assert sql.count("AS $$") >= 16
@@ -192,32 +197,57 @@ class TestAPIURLs:
 
     def test_gbfs_base_url(self):
         """Test that functions use correct GBFS base URL."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Should use the correct GBFS API base
         assert "gbfs.velobixi.com/gbfs/2-2" in sql
 
     def test_station_status_endpoint(self):
         """Test station status endpoint is correct."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         assert "station_status.json" in sql
 
     def test_station_information_endpoint(self):
         """Test station information endpoint is correct."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         assert "station_information.json" in sql
 
     def test_system_information_endpoint(self):
         """Test system information endpoint is correct."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         assert "system_information.json" in sql
 
     def test_system_alerts_endpoint(self):
         """Test system alerts endpoint is correct."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         assert "system_alerts.json" in sql
 
@@ -227,7 +257,12 @@ class TestPythonDependencies:
 
     def test_only_requests_import(self):
         """Test that functions only import requests (and json)."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Should import requests
         assert "import requests" in sql
@@ -242,7 +277,12 @@ class TestPythonDependencies:
 
     def test_no_external_dependencies(self):
         """Test that functions don't require external packages."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Should not reference any of these
         forbidden_imports = [
@@ -263,7 +303,12 @@ class TestFunctionLogic:
 
     def test_total_bikes_logic(self):
         """Test that total bikes function has correct logic."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Should sum num_bikes_available
         assert "num_bikes_available" in sql
@@ -271,14 +316,24 @@ class TestFunctionLogic:
 
     def test_utilization_logic(self):
         """Test that utilization function calculates correctly."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Should calculate percentage
         assert "* 100" in sql or "* 100.0" in sql
 
     def test_station_filtering_logic(self):
         """Test that station filtering checks correct fields."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Should check is_renting, is_returning, is_installed
         assert "is_renting" in sql
@@ -287,7 +342,12 @@ class TestFunctionLogic:
 
     def test_station_merging_logic(self):
         """Test that functions merge info and status."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Should build status_dict and merge (new clean code uses status_dict)
         assert "status_dict" in sql
@@ -295,42 +355,17 @@ class TestFunctionLogic:
         assert "merged" in sql
 
 
-class TestExamples:
-    """Test that SQL includes usage examples."""
-
-    def test_examples_section_present(self):
-        """Test that SQL includes usage examples."""
-        sql = gbfs_uc.get_registration_sql()
-
-        # Should have examples section
-        assert "Example" in sql or "example" in sql
-
-    def test_select_example(self):
-        """Test that examples show SELECT statements."""
-        sql = gbfs_uc.get_registration_sql()
-
-        # Should have commented SELECT examples
-        assert "SELECT" in sql
-
-
-class TestConvenienceFunctions:
-    """Test convenience helper functions."""
-
-    def test_get_main_bixi_sql(self):
-        """Test convenience function for main.bixi."""
-        sql = gbfs_uc.get_main_bixi_sql()
-
-        assert isinstance(sql, str)
-        assert "main.bixi" in sql
-        assert "bixi_" in sql
-
-
 class TestReturnTypes:
     """Test that functions have correct return types."""
 
     def test_int_return_types(self):
         """Test that count functions return INT."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Count functions should return INT
         int_functions = [
@@ -353,7 +388,12 @@ class TestReturnTypes:
 
     def test_double_return_type(self):
         """Test that utilization function returns DOUBLE."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Utilization should return DOUBLE
         assert "get_system_utilization" in sql
@@ -363,7 +403,12 @@ class TestReturnTypes:
 
     def test_string_return_types(self):
         """Test that JSON functions return STRING."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # JSON functions should return STRING
         json_functions = [
@@ -385,25 +430,27 @@ class TestEdgeCases:
     def test_empty_catalog_name(self):
         """Test that empty catalog name is handled."""
         # Should still generate valid SQL
-        sql = gbfs_uc.get_registration_sql(catalog="", schema="bixi_data")
+        sql = gbfs_uc.get_function_sql(
+            "bixi_get_total_bikes_available", catalog="", schema="bixi_data"
+        )
 
         assert isinstance(sql, str)
         assert len(sql) > 0
 
     def test_special_characters_in_prefix(self):
         """Test function prefix with special characters."""
-        sql = gbfs_uc.get_registration_sql(function_prefix="my_bixi_")
-
-        assert "my_bixi_get_total_bikes_available" in sql
+        functions = gbfs_uc.list_available_functions(function_prefix="my_bixi_")
+        # Should have functions with custom prefix
+        assert "my_bixi_get_total_bikes_available" in functions
+        assert len(functions) == 16
 
     def test_no_prefix(self):
         """Test generation with no prefix."""
-        sql = gbfs_uc.get_registration_sql(function_prefix="")
-
+        functions = gbfs_uc.list_available_functions(function_prefix="")
         # Functions should exist without prefix
-        assert "get_total_bikes_available" in sql
+        assert "get_total_bikes_available" in functions
         # But not with prefix
-        assert "bixi_get_total_bikes_available" not in sql
+        assert "bixi_get_total_bikes_available" not in functions
 
 
 class TestSQLValidity:
@@ -411,14 +458,24 @@ class TestSQLValidity:
 
     def test_no_unmatched_parentheses(self):
         """Test that parentheses are balanced."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Basic check - should have balanced parens
         assert sql.count("(") == sql.count(")")
 
     def test_no_unmatched_quotes(self):
         """Test that quotes are balanced (roughly)."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Single quotes should be roughly balanced
         # (allow some imbalance for quotes in strings)
@@ -427,14 +484,24 @@ class TestSQLValidity:
 
     def test_semicolons_present(self):
         """Test that SQL statements end with semicolons."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Should have many semicolons (one per function)
         assert sql.count(";") >= 16
 
     def test_no_syntax_errors_in_python(self):
         """Test that embedded Python code has no obvious syntax errors."""
-        sql = gbfs_uc.get_registration_sql()
+        sql = "\n".join(
+            [
+                gbfs_uc.get_function_sql(f, include_schema=False)
+                for f in gbfs_uc.list_available_functions()
+            ]
+        )
 
         # Check for common Python syntax
         assert "def " not in sql  # Should not have function definitions
